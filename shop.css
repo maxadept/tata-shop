@@ -298,6 +298,8 @@ a.add-btn { display: block; text-align: center; text-decoration: none; }
 .done p { color: var(--muted); font-size: 14px; margin-top: 8px; }
 .done .draft { font-size: 12px; margin-top: 4px; color: var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 2px 8px; display: inline-block; }
 .done .submit-btn { margin-top: 20px; }
+.done .ghost-btn { margin-top: 10px; }
+a.submit-btn { display: block; text-align: center; text-decoration: none; }
 
 /* ---------- товар: полный экран ---------- */
 .psheet {

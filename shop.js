@@ -8,6 +8,12 @@ const $ = id => document.getElementById(id);
 const fmt = n => n.toLocaleString('ru-RU') + ' ₽';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+/* Мост заявок — тот же веб-апп Apps Script, что синхронизирует базу приложения.
+   Ключа приложения здесь нет и не должно быть: заявку подписывает сам Телеграм
+   (initData), подпись проверяет скрипт на сервере. POST идёт как text/plain —
+   без preflight, как и синхронизация приложения. */
+const BRIDGE_URL = 'https://script.google.com/macros/s/AKfycbx-uXKZ7ePHDlL-wXuAFFlmroSByhrtojN8j1JqF8fMu079A208zSI8FUWVTJLuWI708w/exec';
+
 /* ---------- Телеграм-мини-апп: без Телеграма страница — обычный сайт.
    Всё в try/catch: телеграмовский SDK вне приложения неполноценен
    (v6.0 не определяет viewport), уронить страницу он не имеет права ---------- */
@@ -36,14 +42,32 @@ const tgBack = show => { if (tg && tg.BackButton) show ? tg.BackButton.show() : 
 let cart = {};
 try { cart = JSON.parse(localStorage.getItem('tata-shop-cart') || '{}'); } catch (e) { cart = {}; }
 const CATALOG_OK = typeof CATALOG !== 'undefined' && Array.isArray(CATALOG) && CATALOG.length > 0;
-/* товары, снятые с продажи, из корзины вылетают */
-if (CATALOG_OK) for (const id of Object.keys(cart)) if (!CATALOG.some(p => p.id === +id)) delete cart[id];
+const save = () => { try { localStorage.setItem('tata-shop-cart', JSON.stringify(cart)); } catch (e) {} };
+/* чистка корзины на входе: остаются только целые количества 1…∞ по живым
+   товарам — строка «2», мусор или снятый с продажи товар выкидываются,
+   вычищенное сразу сохраняется */
+if (CATALOG_OK) {
+  let dirty = false;
+  for (const id of Object.keys(cart)) {
+    const q = Math.round(+cart[id]);
+    if (!CATALOG.some(p => p.id === +id) || !isFinite(q) || q <= 0) { delete cart[id]; dirty = true; }
+    else if (cart[id] !== q) { cart[id] = q; dirty = true; }
+  }
+  if (dirty) save();
+}
 let filter = 'all';
 
-const save = () => { try { localStorage.setItem('tata-shop-cart', JSON.stringify(cart)); } catch (e) {} };
 const byId = id => CATALOG.find(p => p.id === id);
 const cartCount = () => Object.values(cart).reduce((s, q) => s + q, 0);
 const cartSum = () => Object.entries(cart).reduce((s, [id, q]) => s + byId(+id).price * q, 0);
+/* единственная дверь в корзину для всех трёх степперов (карточка, корзина,
+   товар): NaN в количестве записать нельзя — «−» по отсутствующему ключу
+   просто ничего не меняет, ноль и меньше удаляет позицию */
+function changeQty(id, delta) {
+  const q = (+cart[id] || 0) + delta;
+  if (q <= 0) delete cart[id];
+  else cart[id] = q;
+}
 /* позиция без цены (пока только «Картошка Люкс») — заглушка вместо нуля */
 const priceHtml = p => p.price ? fmt(p.price) : '<span class="fill">[уточнить цену]</span>';
 
@@ -99,13 +123,11 @@ function renderGrid() {
 function onGridClick(e) {
   const b = e.target.closest('[data-a]');
   if (b) {
-    const id = +b.dataset.id;
-    if (b.dataset.a === 'inc') cart[id] = (cart[id] || 0) + 1;
-    else { cart[id]--; if (cart[id] <= 0) delete cart[id]; }
+    changeQty(+b.dataset.id, b.dataset.a === 'inc' ? 1 : -1);
     save();
     renderGrid();
     updateBars();
-    if ($('sheet').classList.contains('open')) renderSheet();
+    if ($('sheet').classList.contains('open')) renderCartItems();
     return;
   }
   /* тап мимо кнопок — провал в товар */
@@ -188,26 +210,38 @@ function renderSheet() {
     return;
   }
   body.innerHTML = FORM_HTML;
+  $('orderForm').addEventListener('submit', onSubmit);
+  renderCartItems();
+}
+
+/* только строки позиций и итог: степпер внутри корзины не пересобирает
+   форму, чтобы не стирать набранные имя и телефон */
+function renderCartItems() {
+  const ids = Object.keys(cart);
+  if (!ids.length) { renderSheet(); return; }
   $('cartItems').innerHTML = ids.map(id => itemRow(byId(+id), cart[id])).join('');
   $('totalSum').textContent = fmt(cartSum());
-  if (ids.some(id => byId(+id).noPrice)) {
-    document.querySelector('.ctotal').insertAdjacentHTML('afterend',
-      '<p class="form-note">Есть позиция без цены — итог посчитаем при подтверждении заказа</p>');
-  }
-  $('orderForm').addEventListener('submit', onSubmit);
+  const note = $('npNote');
+  if (ids.some(id => !byId(+id).price)) {
+    if (!note) document.querySelector('.ctotal').insertAdjacentHTML('afterend',
+      '<p class="form-note" id="npNote">Есть позиция без цены — итог посчитаем при подтверждении заказа</p>');
+  } else if (note) note.remove();
 }
 
 function onSheetClick(e) {
   const b = e.target.closest('[data-a]');
   if (!b) return;
-  const id = +b.dataset.id;
-  if (b.dataset.a === 'inc') cart[id] = (cart[id] || 0) + 1;
-  else { cart[id]--; if (cart[id] <= 0) delete cart[id]; }
-  save(); updateBars(); renderSheet();
+  changeQty(+b.dataset.id, b.dataset.a === 'inc' ? 1 : -1);
+  save();
+  renderGrid();      /* сетка за шторкой не остаётся со старым степпером */
+  renderCartItems();
+  updateBars();
 }
 
-function onSubmit(e) {
+async function onSubmit(e) {
   e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector('.submit-btn');
   const name = $('fName').value.trim(), phone = $('fPhone').value.trim();
   let ok = true;
   $('rowName').classList.toggle('err', !name);
@@ -217,16 +251,86 @@ function onSubmit(e) {
   if (!phone) { rowErr($('rowPhone'), 'Оставьте телефон для подтверждения'); ok = false; }
   if (!ok) return;
 
-  cart = {}; save(); updateBars();
+  /* сайт без Телеграма заказы пока не отправляет — сценарий сайта следующий шаг */
+  if (!(tg && tg.initData)) { websiteDraft(name); return; }
+
+  const payload = {
+    action: 'order',
+    tg: tg.initData,
+    order: {
+      name, phone,
+      when: $('fWhen').value.trim(),
+      addr: $('fAddr').value.trim(),
+      note: $('fNote').value.trim(),
+      items: Object.entries(cart).map(([id, qty]) => {
+        const p = byId(+id);
+        return { id: p.id, name: p.full, qty, price: p.price || 0 };
+      }),
+      sum: cartSum()
+    }
+  };
+
+  btn.disabled = true;
+  btn.textContent = 'Отправляем…';
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 30000);
+  try {
+    const res = await fetch(BRIDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      signal: ac.signal
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'мост отказал');
+    orderDone(name, data.num);
+  } catch (err) {
+    formErr(/Подпись/.test(err.message)
+      ? 'Ссылка устарела — закройте витрину и откройте заново, корзина сохранится'
+      : 'Не получилось отправить — проверьте связь и нажмите ещё раз');
+    btn.disabled = false;
+    btn.textContent = 'Отправить заказ';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* Корзина чистится только здесь — после подтверждения моста, а не в момент
+   нажатия кнопки: при сбое сети состав должен остаться у клиента */
+function orderDone(name, num) {
+  cart = {}; save(); renderGrid(); updateBars();
   $('sheetBody').innerHTML = `
     <div class="done">
       <div class="done-circle"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"/></svg></div>
-      <h3>Спасибо, ${name}!</h3>
-      <p>Мы напишем или позвоним, чтобы подтвердить заказ.</p>
-      <p class="draft">черновик: заявка пока не отправляется — отправка в Таблицу подключается следующим шагом</p>
-      <button class="submit-btn" id="doneBtn" type="button">Отлично</button>
+      <h3>Спасибо, ${esc(name)}!</h3>
+      <p>Заявка №${num} отправлена — ответ придёт сюда же, в чат с ботом. Можно закрывать витрину.</p>
+      <button class="submit-btn" id="doneBtn" type="button">Готово</button>
+    </div>`;
+  $('doneBtn').addEventListener('click', () => {
+    closeSheet();
+    try { tg.close && tg.close(); } catch (e) { /* вне приложения закрыть нечем */ }
+  });
+}
+
+function websiteDraft(name) {
+  $('sheetBody').innerHTML = `
+    <div class="done">
+      <div class="done-circle"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"/></svg></div>
+      <h3>Спасибо, ${esc(name)}!</h3>
+      <p>Заказы через сайт подключаются — пока оформите, пожалуйста, в Телеграме: корзина сохранится, перечислите её в сообщении.</p>
+      <a class="submit-btn" href="https://t.me/taira_lis" target="_blank" rel="noopener">Написать в Телеграм</a>
+      <button class="ghost-btn" id="doneBtn" type="button">Вернуться</button>
     </div>`;
   $('doneBtn').addEventListener('click', closeSheet);
+}
+
+/* ошибка отправки — инлайн над кнопкой, форма и корзина остаются как были */
+function formErr(text) {
+  document.querySelectorAll('.send-err').forEach(el => el.remove());
+  const d = document.createElement('div');
+  d.className = 'f-err send-err'; d.textContent = text;
+  document.querySelector('.submit-btn').insertAdjacentElement('beforebegin', d);
 }
 
 function rowErr(row, text) {
@@ -290,9 +394,8 @@ function openProduct(id) {
 function onPActionClick(e) {
   const b = e.target.closest('button');
   if (!b || !currentP) return;
-  const id = currentP.id;
-  if (b.id === 'pAdd' || b.id === 'pInc') cart[id] = (cart[id] || 0) + 1;
-  else if (b.id === 'pDec') { cart[id]--; if (cart[id] <= 0) delete cart[id]; }
+  if (b.id === 'pAdd' || b.id === 'pInc') changeQty(currentP.id, 1);
+  else if (b.id === 'pDec') changeQty(currentP.id, -1);
   else return;
   save();
   updateBars();
