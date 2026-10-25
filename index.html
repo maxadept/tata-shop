@@ -13,23 +13,30 @@
 <!-- абсолютный адрес: Телеграм показывает превью только по абсолютным ссылкам -->
 <meta property="og:image" content="https://maxadept.github.io/tata-shop/img/logo.jpg">
 <link rel="icon" href="img/logo.jpg">
-<link rel="stylesheet" href="shop.css?v=12">
+<link rel="stylesheet" href="shop.css?v=14">
 </head>
 <body>
 <div class="wrap">
 
-  <header class="hdr">
-    <div class="brand">
-      <img class="brand-logo" src="img/logo.jpg" alt="Логотип Тата">
-      <div>
-        <div class="brand-name">Tata_nosugar</div>
-        <div class="brand-sub">десерты без сахара</div>
+  <header class="top">
+    <div class="hdr">
+      <div class="brand">
+        <img class="brand-logo" src="img/logo.jpg" alt="Логотип Тата">
+        <div>
+          <div class="brand-name">Tata_nosugar</div>
+          <div class="brand-sub">десерты без сахара</div>
+        </div>
       </div>
+      <button class="cart-btn" id="cartBtn" type="button" hidden>
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l1.5 12.5a1 1 0 0 1-1 1.1H5.5a1 1 0 0 1-1-1.1L6 7Z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg>
+        <span id="cartBtnCount">0</span>
+      </button>
     </div>
-    <button class="cart-btn" id="cartBtn" type="button" hidden>
-      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l1.5 12.5a1 1 0 0 1-1 1.1H5.5a1 1 0 0 1-1-1.1L6 7Z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg>
-      <span id="cartBtnCount">0</span>
-    </button>
+    <nav class="rubric" aria-label="Разделы страницы">
+      <a href="#catalog">Каталог</a>
+      <a href="#delivery">Доставка</a>
+      <a href="#about">Обо мне</a>
+    </nav>
   </header>
 
   <section class="hero">
@@ -37,43 +44,38 @@
     <p>Корпусные десерты и другие ПП десерты из натуральных ингредиентов. Готовим в Екатеринбурге небольшими партиями — заказывайте напрямую, без посредников.</p>
   </section>
 
-  <section class="catalog">
+  <section class="catalog" id="catalog">
     <div class="chips" id="chips"></div>
     <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="info" id="delivery">
+    <h2>Доставка и оплата</h2>
+    <div class="card">
+      <p><b>Самовывоз.</b> г. Екатеринбург, пр-кт Космонавтов, д. 91В</p>
+      <p><b>Курьером.</b> Заказ отправляется Яндекс-курьером, оплата доставки за счёт клиента. Можно заказать самостоятельно, чтобы не сообщать свой адрес.</p>
+      <p><b>Оплата.</b> Полная предоплата переводом до начала приготовления заказа. Возможны индивидуальные условия при заказе крупных партий.</p>
+    </div>
   </section>
 
   <section class="info" id="about">
     <h2>Обо мне</h2>
     <div class="card about">
-      <div class="about-top">
-        <img class="about-avatar" src="img/avatar.jpg" alt="Тата — основатель Tata_nosugar">
-        <div class="about-links">
-          <a href="https://www.instagram.com/tata_nosugar/" target="_blank" rel="noopener" aria-label="Инстаграм" title="Инстаграм">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17" cy="7" r="1" fill="currentColor" stroke="none"/></svg>
-          </a>
-          <a href="https://t.me/tata_nosugar" target="_blank" rel="noopener" aria-label="Телеграм" title="Телеграм">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
-          </a>
-          <a href="https://flowwow.com/shop/tata-nosugar/" target="_blank" rel="noopener" aria-label="Флаувау" title="Флаувау">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="6.5" r="2.9"/><circle cx="17.2" cy="10.3" r="2.9"/><circle cx="15.2" cy="16.4" r="2.9"/><circle cx="8.8" cy="16.4" r="2.9"/><circle cx="6.8" cy="10.3" r="2.9"/></svg>
-          </a>
-        </div>
-      </div>
+      <img class="about-avatar" src="img/avatar.jpg?v=2" alt="Тата — основатель Tata_nosugar">
       <p>Готовлю десерты из полезных ингредиентов с 2017 года. Не использую сахар, маргарин и белую муку, знаю рецепты безглютеновых, безлактозных и вегетарианских десертов.</p>
       <p>Считаю, что сладости без сахара ни в чем не должны уступать обычным, и подбираю ингредиенты так, чтобы сохранить привычную сладость, нежную текстуру и насыщенный вкус. При этом за счёт баланса нутриентов мои десерты содержат меньше калорий и лучше насыщают.</p>
       <p>Открыта к сотрудничеству с ресторанами и кофейнями: помогу дополнить меню десертами без сахара.</p>
-    </div>
-  </section>
-
-  <section class="info">
-    <h2>Доставка</h2>
-    <div class="card">
-      <p><b>Самовывоз.</b> г. Екатеринбург, пр-кт Космонавтов, д. 91В</p>
-      <p><b>Курьером.</b> Заказ отправляется Яндекс-курьером, оплата доставки за счёт клиента. Можно заказать самостоятельно, чтобы не сообщать свой адрес.</p>
-    </div>
-    <h2>Оплата</h2>
-    <div class="card">
-      <p><b>Переводом.</b> Полная предоплата до начала приготовления заказа. Возможны индивидуальные условия оплаты при заказе крупных партий.</p>
+      <div class="about-links">
+        <a href="https://www.instagram.com/tata_nosugar/" target="_blank" rel="noopener" aria-label="Инстаграм" title="Инстаграм">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17" cy="7" r="1" fill="currentColor" stroke="none"/></svg>
+        </a>
+        <a href="https://t.me/tata_nosugar" target="_blank" rel="noopener" aria-label="Телеграм" title="Телеграм">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
+        </a>
+        <a href="https://flowwow.com/shop/tata-nosugar/" target="_blank" rel="noopener" aria-label="Флаувау" title="Флаувау">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="6.5" r="2.9"/><circle cx="17.2" cy="10.3" r="2.9"/><circle cx="15.2" cy="16.4" r="2.9"/><circle cx="8.8" cy="16.4" r="2.9"/><circle cx="6.8" cy="10.3" r="2.9"/></svg>
+        </a>
+      </div>
     </div>
   </section>
 
@@ -702,6 +704,6 @@ const CATALOG = [
 ];
 /* CATALOG:END */
 </script>
-<script src="shop.js?v=12"></script>
+<script src="shop.js?v=14"></script>
 </body>
 </html>

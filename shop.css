@@ -68,13 +68,14 @@ img { display: block; }
   .wrap { box-shadow: 0 0 0 1px rgba(45,33,24,.08), 0 30px 80px rgba(45,33,24,.25); }
 }
 
-/* ---------- шапка ---------- */
-.hdr {
+/* ---------- шапка + рубрикатор: один sticky-контейнер ---------- */
+.top {
   position: sticky; top: 0; z-index: 20;
+  background: var(--bg);
+}
+.hdr {
   display: flex; align-items: center; justify-content: space-between;
   padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; align-items: center; gap: 10px; }
 .brand-logo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
@@ -87,6 +88,32 @@ img { display: block; }
   font-size: 14px; font-weight: 650;
 }
 .cart-btn[hidden], .cart-bar[hidden] { display: none; }
+
+/* рубрикатор: активный пункт — оранжевый текст и подчёркивание,
+   как у вкладок и нижней навигации */
+.rubric {
+  display: flex;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.rubric::-webkit-scrollbar { display: none; }
+.rubric a {
+  flex: 1;
+  padding: 11px 8px 9px;
+  text-align: center;
+  font-size: 13.5px; font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.rubric a.on { color: var(--accent); border-bottom-color: var(--accent); }
+/* якоря не прячутся под sticky-шапкой при переходе по рубрикатору */
+#catalog, #delivery, #about {
+  scroll-margin-top: calc(106px + env(safe-area-inset-top));
+}
 
 /* ---------- вступление ---------- */
 .hero { padding: 18px 16px 4px; }
@@ -187,27 +214,26 @@ a.add-btn { display: block; text-align: center; text-decoration: none; }
 }
 
 /* ---------- обо мне ---------- */
-.about-top {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px;
-}
+/* карточка без боковых полей: фото во всю ширину как обложка */
+.about { padding: 0 0 16px; }
 .about-avatar {
-  width: 72px; height: 72px;
-  border-radius: 50%; object-fit: cover;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius) var(--radius) 0 0;
   background: var(--surface2);
 }
-.about-links { display: flex; gap: 10px; }
+.about p { color: var(--text); font-size: 14px; padding: 0 16px; }
+.about p:first-of-type { margin-top: 14px; }
+/* значки — в семье действий: тёмная заливка, белая иконка,
+   как «В корзину» и «Написать в Телеграм» */
+.about-links { display: flex; gap: 10px; padding: 14px 16px 0; }
 .about-links a {
   width: 40px; height: 40px; border-radius: 50%;
-  border: 1.5px solid var(--line);
-  background: var(--surface);
-  color: var(--muted);
+  background: var(--text); color: #fff;
   display: flex; align-items: center; justify-content: center;
 }
-.about-links a:active { border-color: var(--accent); color: var(--accent); }
-@media (hover: hover) { .about-links a:hover { border-color: var(--accent); color: var(--accent); } }
 .about-links svg { width: 20px; height: 20px; }
-.about p { color: var(--text); font-size: 14px; }
 
 /* ---------- подвал ---------- */
 .foot { padding: 26px 16px calc(110px + env(safe-area-inset-bottom)); }

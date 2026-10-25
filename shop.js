@@ -501,6 +501,38 @@ if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
   attachBar($('pScroll'));
 }
 
+/* ---------- рубрикатор: активный пункт по положению секций ----------
+   Активен последний пункт, чья секция зашла под низ шапки. События
+   scroll в этой среде ненадёжны (программная прокрутка их не поднимает),
+   поэтому следим тем же поллингом, что и полосы прокрутки */
+const rubricLinks = [...document.querySelectorAll('.rubric a')];
+if (rubricLinks.length) {
+  /* тап по пункту прокручивает сами: фрагментный переход браузера не
+     уважает смещение в этой среде, scrollIntoView — уважает
+     scroll-margin-top и работает и в мини-аппе, и в обычном браузере */
+  for (const a of rubricLinks) {
+    a.addEventListener('click', e => {
+      const el = document.querySelector(a.getAttribute('href'));
+      if (!el) return;
+      e.preventDefault();
+      el.scrollIntoView({ behavior: 'instant', block: 'start' });
+      history.replaceState(null, '', a.getAttribute('href'));
+    });
+  }
+  const rubricAnchors = rubricLinks.map(a => document.querySelector(a.getAttribute('href')));
+  let rubricCur = -1;
+  setInterval(() => {
+    const bar = document.querySelector('.top');
+    const edge = (bar ? bar.getBoundingClientRect().bottom : 100) + 24;
+    let cur = -1;
+    rubricAnchors.forEach((el, i) => { if (el && el.getBoundingClientRect().top <= edge) cur = i; });
+    if (cur !== rubricCur) {
+      rubricCur = cur;
+      rubricLinks.forEach((a, i) => a.classList.toggle('on', i === cur));
+    }
+  }, 150);
+}
+
 /* ---------- запуск ----------
    Каталог — первый и в собственном контуре: что бы ни случилось дальше,
    витрина без каталога не остаётся. Вместо пустой сетки — явная ошибка */
