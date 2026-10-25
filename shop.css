@@ -207,6 +207,10 @@ a.add-btn { display: block; text-align: center; text-decoration: none; }
 }
 .info p { font-size: 14px; color: var(--muted); }
 .info p b { color: var(--text); }
+/* карта самовывоза: виджет конструктора приходит жёстко 600×450 —
+   ширину растягиваем на карточку, высоту оставляем виджету */
+.map { border-radius: 12px; overflow: hidden; background: var(--surface2); }
+.map iframe { width: 100% !important; border: 0; }
 .fill {
   background: var(--warn-soft);
   color: var(--warn);
@@ -215,9 +219,11 @@ a.add-btn { display: block; text-align: center; text-decoration: none; }
 
 /* ---------- обо мне ---------- */
 /* карточка как у всех (радиус, тень, поля секции 16px), фото во всю ширину
-   карточки; внутренние отступы текста — стандарт карточки: бока 16,
-   сверху 14, между блоками 8, снизу 14 — ничего «на глаз» */
-.about { padding: 0 0 14px; }
+   КАРТОЧКИ. Селектор .info .about — обязательная сила против общих правил:
+   .info .card (padding 14px 16px) иначе оставляет фото в белых полях,
+   .info p (muted) иначе красит текст серым. Внутренние отступы — стандарт
+   карточки: бока 16, сверху 14, между блоками 8, снизу 14 */
+.info .about { padding: 0 0 14px; }
 .about-avatar {
   width: 100%;
   aspect-ratio: 1;
@@ -226,7 +232,7 @@ a.add-btn { display: block; text-align: center; text-decoration: none; }
   background: var(--surface2);
   margin-bottom: 6px;      /* + 8 из gap карточки = 14 сверху, как у всех */
 }
-.about p { color: var(--text); font-size: 14px; padding: 0 16px; }
+.info .about p { color: var(--text); font-size: 14px; padding: 0 16px; }
 /* значки — в семье действий: тёмная заливка, белая иконка,
    как «В корзину» и «Написать в Телеграм» */
 .about-links { display: flex; gap: 10px; padding: 0 16px; }
