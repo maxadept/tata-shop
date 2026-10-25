@@ -242,6 +242,7 @@ a.add-btn { display: block; text-align: center; text-decoration: none; }
   display: flex; align-items: center; justify-content: center;
 }
 .about-links svg { width: 20px; height: 20px; }
+.about-links img { width: 20px; height: 20px; }
 
 /* ---------- подвал ---------- */
 .foot { padding: 26px 16px calc(110px + env(safe-area-inset-bottom)); }
