@@ -214,20 +214,22 @@ a.add-btn { display: block; text-align: center; text-decoration: none; }
 }
 
 /* ---------- обо мне ---------- */
-/* карточка без боковых полей: фото во всю ширину как обложка */
-.about { padding: 0 0 16px; }
+/* карточка как у всех (радиус, тень, поля секции 16px), фото во всю ширину
+   карточки; внутренние отступы текста — стандарт карточки: бока 16,
+   сверху 14, между блоками 8, снизу 14 — ничего «на глаз» */
+.about { padding: 0 0 14px; }
 .about-avatar {
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
   border-radius: var(--radius) var(--radius) 0 0;
   background: var(--surface2);
+  margin-bottom: 6px;      /* + 8 из gap карточки = 14 сверху, как у всех */
 }
 .about p { color: var(--text); font-size: 14px; padding: 0 16px; }
-.about p:first-of-type { margin-top: 14px; }
 /* значки — в семье действий: тёмная заливка, белая иконка,
    как «В корзину» и «Написать в Телеграм» */
-.about-links { display: flex; gap: 10px; padding: 14px 16px 0; }
+.about-links { display: flex; gap: 10px; padding: 0 16px; }
 .about-links a {
   width: 40px; height: 40px; border-radius: 50%;
   background: var(--text); color: #fff;
