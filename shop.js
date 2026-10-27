@@ -56,6 +56,33 @@ if (CATALOG_OK) {
   if (dirty) save();
 }
 let filter = 'all';
+/* способ получения в окне заказа: вкладка «Самовывоз» (под ней карта) или
+   «Доставка» (под ней адрес). По умолчанию самовывоз */
+let deliv = 'pickup';
+/* карта самовывоза — тот же конструктор Яндекса, что в разделе «Доставка и
+   оплата», второй экземпляр внутри шторки. Грузим лениво, только при первом
+   выборе самовывоза; высоту подрезает css (виджет приходит 600×450) */
+const MAP_URL = 'https://api-maps.yandex.ru/services/constructor/1.0/js/?um=constructor%3A5cc35dbc77970f8981b69ef67cd729df7ea5f60509ec9dc65e20235fdb43bdb6&width=600&height=450&lang=ru_RU&scroll=true';
+let pickupMapLoaded = false;
+function showPickupMap() {
+  if (pickupMapLoaded) return;
+  pickupMapLoaded = true;
+  const s = document.createElement('script');
+  s.src = MAP_URL;
+  s.async = true;
+  $('pickupMap').appendChild(s);
+}
+function pickDelivery(mode) {
+  deliv = mode;
+  for (const b of document.querySelectorAll('.dlv-tab')) {
+    const on = b.dataset.d === deliv;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', String(on));
+  }
+  $('panePickup').hidden = deliv !== 'pickup';
+  $('paneDelivery').hidden = deliv !== 'delivery';
+  if (deliv === 'pickup') showPickupMap();
+}
 
 const byId = id => CATALOG.find(p => p.id === id);
 const cartCount = () => Object.values(cart).reduce((s, q) => s + q, 0);
@@ -185,12 +212,22 @@ const FORM_HTML = `
       <input id="fWhen" name="when" type="text" placeholder="Например: суббота, к 15:00">
     </div>
     <div class="f-row">
-      <label for="fAddr">Адрес доставки или самовывоз</label>
-      <input id="fAddr" name="addr" type="text" placeholder="Улица, дом, квартира — или «самовывоз»">
+      <div class="dlv-tabs" role="tablist">
+        <button class="dlv-tab on" type="button" data-d="pickup" role="tab" aria-selected="true">Самовывоз</button>
+        <button class="dlv-tab" type="button" data-d="delivery" role="tab" aria-selected="false">Доставка</button>
+      </div>
+    </div>
+    <div class="dlv-pane" id="panePickup">
+      <div class="map map-small" id="pickupMap"></div>
+      <p class="dlv-addr">г. Екатеринбург, пр-кт Космонавтов, д. 91В</p>
+    </div>
+    <div class="f-row" id="paneDelivery" hidden>
+      <p class="dlv-pay">Доставка оплачивается клиентом</p>
+      <input id="fAddr" name="addr" type="text" placeholder="Улица, дом, квартира">
     </div>
     <div class="f-row">
       <label for="fNote">Комментарий</label>
-      <textarea id="fNote" name="note" rows="2" placeholder="Надпись на наборе, аллергии, вопросы"></textarea>
+      <textarea id="fNote" name="note" rows="2" placeholder="Дополнительная информация, например, об оформлении или вопросы"></textarea>
     </div>
     <button class="submit-btn" type="submit">Отправить заказ</button>
     <p class="form-note">Мы напишем или позвоним, чтобы подтвердить заказ</p>
@@ -212,6 +249,7 @@ function renderSheet() {
   body.innerHTML = FORM_HTML;
   $('orderForm').addEventListener('submit', onSubmit);
   renderCartItems();
+  if (deliv === 'pickup') showPickupMap();   /* карта под активной вкладкой — сразу, не по клику */
 }
 
 /* только строки позиций и итог: степпер внутри корзины не пересобирает
@@ -229,6 +267,8 @@ function renderCartItems() {
 }
 
 function onSheetClick(e) {
+  const tab = e.target.closest('.dlv-tab');
+  if (tab) { pickDelivery(tab.dataset.d); return; }
   const b = e.target.closest('[data-a]');
   if (!b) return;
   changeQty(+b.dataset.id, b.dataset.a === 'inc' ? 1 : -1);
@@ -243,12 +283,17 @@ async function onSubmit(e) {
   const form = e.target;
   const btn = form.querySelector('.submit-btn');
   const name = $('fName').value.trim(), phone = $('fPhone').value.trim();
+  /* на самовывозе адрес не спрашиваем — в заявке он так и помечается;
+     на доставке без адреса заказ оформить нельзя */
+  const addr = deliv === 'pickup' ? 'Самовывоз' : $('fAddr').value.trim();
   let ok = true;
   $('rowName').classList.toggle('err', !name);
   $('rowPhone').classList.toggle('err', !phone);
+  $('paneDelivery').classList.toggle('err', !addr && deliv === 'delivery');
   document.querySelectorAll('.f-err').forEach(el => el.remove());
   if (!name) { rowErr($('rowName'), 'Подскажите имя'); ok = false; }
   if (!phone) { rowErr($('rowPhone'), 'Оставьте телефон для подтверждения'); ok = false; }
+  if (deliv === 'delivery' && !addr) { rowErr($('paneDelivery'), 'Укажите адрес доставки'); ok = false; }
   if (!ok) return;
 
   /* сайт без Телеграма заказы пока не отправляет — сценарий сайта следующий шаг */
@@ -260,7 +305,7 @@ async function onSubmit(e) {
     order: {
       name, phone,
       when: $('fWhen').value.trim(),
-      addr: $('fAddr').value.trim(),
+      addr,
       note: $('fNote').value.trim(),
       items: Object.entries(cart).map(([id, qty]) => {
         const p = byId(+id);
