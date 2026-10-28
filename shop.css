@@ -223,22 +223,25 @@ a.add-btn { display: block; text-align: center; text-decoration: none; }
    .info .card (padding 14px 16px) иначе оставляет фото в белых полях,
    .info p (muted) иначе красит текст серым. Внутренние отступы — стандарт
    карточки: бока 16, сверху 14, между блоками 8, снизу 14.
-   Фото — 80% ширины карточки, по центру (просьба Татьяны 25.10.2026);
-   краёв карточки фото больше не касается, поэтому радиус со всех сторон */
-.info .about { padding: 0 0 14px; }
+   Макет №78 (не согласован): фото в два раза меньше (40% ширины), слева,
+   текст обтекает его — карточка переключена на блочный поток, float работает
+   только вне flex. Публиковать только после слова Татьяны */
+.info .about { display: block; padding: 14px 0; }
 .about-avatar {
   display: block;
-  width: 80%;
+  float: left;
+  width: 40%;
   aspect-ratio: 1;
   object-fit: cover;
   border-radius: var(--radius);
   background: var(--surface2);
-  margin: 14px auto 6px;   /* сверху 14 — как паддинг карточки у остальных */
+  margin: 0 12px 8px 16px;
 }
 .info .about p { color: var(--text); font-size: 14px; padding: 0 16px; }
+.info .about p + p { margin-top: 8px; }
 /* значки — в семье действий: тёмная заливка, белая иконка,
    как «В корзину» и «Написать в Телеграм» */
-.about-links { display: flex; gap: 10px; padding: 0 16px; }
+.about-links { clear: both; display: flex; gap: 10px; padding: 0 16px; margin-top: 12px; }
 .about-links a {
   width: 40px; height: 40px; border-radius: 50%;
   background: var(--text); color: #fff;

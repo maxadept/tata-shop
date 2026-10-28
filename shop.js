@@ -222,7 +222,7 @@ const FORM_HTML = `
       <p class="dlv-addr">г. Екатеринбург, пр-кт Космонавтов, д. 91В</p>
     </div>
     <div class="f-row" id="paneDelivery" hidden>
-      <p class="dlv-pay">Доставка оплачивается клиентом</p>
+      <p class="dlv-pay">Яндекс доставка оплачивается клиентом, либо можете не указывать адрес и заказать самостоятельно когда заказ будет собран</p>
       <input id="fAddr" name="addr" type="text" placeholder="Улица, дом, квартира">
     </div>
     <div class="f-row">
