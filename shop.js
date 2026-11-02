@@ -48,13 +48,20 @@ const CATALOG_OK = typeof CATALOG !== 'undefined' && Array.isArray(CATALOG) && C
    дешевле. Считаем на лету, а не в каталоге: блок CATALOG целиком
    пересобирается tools/update_shop_catalog.py и правку бы стёр.
    p.was — та цена, что зачёркивается; p.price — та, что считается в корзине,
-   уходит в заказ и уходит исполнителю: клиент платит именно скидочную. */
+   уходит в заказ и уходит исполнителю: клиент платит именно скидочную.
+   Ответ Татьяны 02.11.2026 на вопросы по акции:
+   1) новую цену округляем ВНИЗ до десятков (1 080 → 860, 2 070 → 1 650);
+   2) акция пока постоянная, плашки об акции на витрине не нужно;
+   3) зачёркивается только акционная цена — прежняя скидка Флаувау
+      (1 200 → 1 080) второй зачёркнутой строкой не показывается. */
 const SALE_PERCENT = 20;
+/* округление вниз до десятков: 1 080 → 860, 2 070 → 1 650, 1 215 → 970 */
+const salePrice = old => Math.floor(old * (100 - SALE_PERCENT) / 100 / 10) * 10;
 if (CATALOG_OK) {
   for (const p of CATALOG) {
     if (!p.price) continue;
     p.was = p.price;
-    p.price = Math.round(p.price * (100 - SALE_PERCENT) / 100);
+    p.price = salePrice(p.price);
   }
 }
 const save = () => { try { localStorage.setItem('tata-shop-cart', JSON.stringify(cart)); } catch (e) {} };
