@@ -42,6 +42,21 @@ const tgBack = show => { if (tg && tg.BackButton) show ? tg.BackButton.show() : 
 let cart = {};
 try { cart = JSON.parse(localStorage.getItem('tata-shop-cart') || '{}'); } catch (e) { cart = {}; }
 const CATALOG_OK = typeof CATALOG !== 'undefined' && Array.isArray(CATALOG) && CATALOG.length > 0;
+
+/* ---------- акция «скидка 20%» (заявка Татьяны 02.11.2026) ----------
+   Старая цена витрины показывается зачёркнутой и серой, рядом — новая, на 20%
+   дешевле. Считаем на лету, а не в каталоге: блок CATALOG целиком
+   пересобирается tools/update_shop_catalog.py и правку бы стёр.
+   p.was — та цена, что зачёркивается; p.price — та, что считается в корзине,
+   уходит в заказ и уходит исполнителю: клиент платит именно скидочную. */
+const SALE_PERCENT = 20;
+if (CATALOG_OK) {
+  for (const p of CATALOG) {
+    if (!p.price) continue;
+    p.was = p.price;
+    p.price = Math.round(p.price * (100 - SALE_PERCENT) / 100);
+  }
+}
 const save = () => { try { localStorage.setItem('tata-shop-cart', JSON.stringify(cart)); } catch (e) {} };
 /* чистка корзины на входе: остаются только целые количества 1…∞ по живым
    товарам — строка «2», мусор или снятый с продажи товар выкидываются,
@@ -95,8 +110,11 @@ function changeQty(id, delta) {
   if (q <= 0) delete cart[id];
   else cart[id] = q;
 }
-/* позиция без цены (пока только «Картошка Люкс») — заглушка вместо нуля */
-const priceHtml = p => p.price ? fmt(p.price) : '<span class="fill">[уточнить цену]</span>';
+/* позиция без цены (пока только «Картошка Люкс») — заглушка вместо нуля;
+   с ценой — новая (акцией) и старая зачёркнутая рядом */
+const priceHtml = p => p.price
+  ? `<span class="now">${fmt(p.price)}</span><span class="was">${fmt(p.was)}</span>`
+  : '<span class="fill">[уточнить цену]</span>';
 
 /* ---------- каталог ---------- */
 
@@ -426,7 +444,7 @@ function openProduct(id) {
   $('pLabel').textContent = p.lbl || '';
   $('pName').textContent = p.full;
   $('pPrice').innerHTML = p.price
-    ? `<span class="now">${fmt(p.price)}</span>` + (p.old ? `<span class="was">${fmt(p.old)}</span>` : '')
+    ? `<span class="now">${fmt(p.price)}</span><span class="was">${fmt(p.was)}</span>`
     : '<span class="fill">[уточнить цену]</span>';
   $('pDesc').textContent = p.desc || '';
   renderPAction();
