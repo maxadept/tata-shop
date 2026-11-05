@@ -123,6 +123,22 @@ const priceHtml = p => p.price
   ? `<span class="now">${fmt(p.price)}</span><span class="was">${fmt(p.was)}</span>`
   : '<span class="fill">[уточнить цену]</span>';
 
+/* поля карточки Флаувау, тянутся с кабинета при пересборке каталога:
+   вес товара (г) и время изготовления (мин) */
+const prepText = min => {
+  const m = Math.round(min || 0);
+  if (!(m > 0)) return '';
+  if (m < 60) return m + ' мин';
+  const h = Math.floor(m / 60), rest = m % 60;
+  return rest ? `${h} ч ${rest} мин` : `${h} ч`;
+};
+const metaHtml = p => {
+  const bits = [];
+  if (p.wt > 0) bits.push('Вес ' + p.wt + ' г');
+  if (p.pt > 0) bits.push('готовим ' + prepText(p.pt));
+  return bits.length ? `<div class="pmeta">${bits.join(' · ')}</div>` : '';
+};
+
 /* ---------- каталог ---------- */
 
 function renderChips() {
@@ -453,6 +469,7 @@ function openProduct(id) {
   $('pPrice').innerHTML = p.price
     ? `<span class="now">${fmt(p.price)}</span><span class="was">${fmt(p.was)}</span>`
     : '<span class="fill">[уточнить цену]</span>';
+  $('pMeta').innerHTML = metaHtml(p);
   $('pDesc').textContent = p.desc || '';
   renderPAction();
   $('overlay').hidden = false;

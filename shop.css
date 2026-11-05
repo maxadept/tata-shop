@@ -449,6 +449,11 @@ a.submit-btn { display: block; text-align: center; text-decoration: none; }
 .pprice { display: flex; align-items: baseline; gap: 10px; margin-top: 8px; }
 .pprice .now { font-size: 21px; font-weight: 700; }
 .pprice .was { font-size: 15px; color: var(--muted); text-decoration: line-through; }
+/* поля карточки Флаувау: вес товара и время изготовления */
+.pmeta {
+  margin-top: 6px;
+  font-size: 13px; line-height: 1.4; color: var(--muted);
+}
 .pdesc {
   margin-top: 14px;
   font-size: 14.5px; line-height: 1.55; color: var(--text);
