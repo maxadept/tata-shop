@@ -13,7 +13,7 @@
 <!-- абсолютный адрес: Телеграм показывает превью только по абсолютным ссылкам -->
 <meta property="og:image" content="https://maxadept.github.io/tata-shop/img/logo.jpg">
 <link rel="icon" href="img/logo.jpg">
-<link rel="stylesheet" href="shop.css?v=27">
+<link rel="stylesheet" href="shop.css?v=28">
 </head>
 <body>
 <div class="wrap">
@@ -129,13 +129,76 @@
     <div class="pinfo">
       <div class="pcard-label" id="pLabel"></div>
       <h2 class="pname" id="pName"></h2>
-      <div class="pprice" id="pPrice"></div>
+      <div class="pprice-row">
+        <div class="pprice" id="pPrice"></div>
+        <!-- карандаш правки цены: показывает только владелецу, код проверяет
+             сервер (действие setprice моста); остальным он не виден -->
+        <button class="pedit" id="pEdit" type="button" aria-label="Изменить цену" title="Изменить цену" hidden>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3Z"/><path d="M13.5 6.5l3 3"/></svg>
+        </button>
+      </div>
       <div id="pMeta"></div>
       <div id="pComp"></div>
       <p class="pdesc" id="pDesc"></p>
     </div>
   </div>
   <div class="paction" id="pAction"></div>
+</section>
+
+<!-- правка цены: своё окно, без системных confirm/alert -->
+<div class="overlay" id="peditOverlay" hidden></div>
+<section class="sheet pricedit" id="peditSheet" role="dialog" aria-modal="true" aria-label="Изменить цену">
+  <div class="sheet-hdr">
+    <b>Цена</b>
+    <button class="sheet-close" id="peditClose" type="button" aria-label="Закрыть">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body">
+    <p class="pedit-prod" id="peditProd"></p>
+    <div class="f-row">
+      <label for="peditInput">Цена, ₽</label>
+      <input id="peditInput" type="text" inputmode="numeric" autocomplete="off" placeholder="Например: 1 760">
+    </div>
+    <div class="f-row" id="peditCodeWrap" hidden>
+      <label for="peditCode">Код владельца</label>
+      <input id="peditCode" type="password" autocomplete="off" placeholder="Только у Татьяны">
+    </div>
+    <p class="pedit-err" id="peditErr" hidden></p>
+    <button class="submit-btn" id="peditSave" type="button">Сохранить</button>
+    <button class="pedit-reset" id="peditReset" type="button" hidden>Вернуть цену из кабинета</button>
+    <p class="form-note">Цена сразу меняется на витрине и в корзине</p>
+  </div>
+</section>
+
+<!-- режим владельца: включается долгим нажатием на название магазина в шапке
+     (или ссылкой ?owner=1). Пока код не введён, карандаша у цены нет —
+     покупатель правку не видит вовсе -->
+<div class="overlay" id="ownOverlay" hidden></div>
+<section class="sheet" id="ownSheet" role="dialog" aria-modal="true" aria-label="Режим владельца">
+  <div class="sheet-hdr">
+    <b>Владелец</b>
+    <button class="sheet-close" id="ownClose" type="button" aria-label="Закрыть">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body">
+    <div id="ownForm">
+      <p class="pedit-prod">Введите код — откроется правка цен на этом устройстве.</p>
+      <div class="f-row">
+        <label for="ownCode">Код владельца</label>
+        <input id="ownCode" type="password" autocomplete="off">
+      </div>
+      <p class="pedit-err" id="ownErr" hidden></p>
+      <button class="submit-btn" id="ownOk" type="button">Открыть правку цен</button>
+      <p class="form-note">Код спрашивается один раз на устройстве</p>
+    </div>
+    <div id="ownOn" hidden>
+      <p class="pedit-prod">Правка цен включена на этом устройстве: у стоимости
+        товара есть карандаш.</p>
+      <button class="pedit-reset" id="ownOff" type="button">Выключить правку цен</button>
+    </div>
+  </div>
 </section>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -996,6 +1059,6 @@ const CATALOG = [
 ];
 /* CATALOG:END */
 </script>
-<script src="shop.js?v=22"></script>
+<script src="shop.js?v=23"></script>
 </body>
 </html>

@@ -57,13 +57,26 @@ const CATALOG_OK = typeof CATALOG !== 'undefined' && Array.isArray(CATALOG) && C
 const SALE_PERCENT = 20;
 /* округление вниз до десятков: 1 080 → 860, 2 070 → 1 650, 1 215 → 970 */
 const salePrice = old => Math.floor(old * (100 - SALE_PERCENT) / 100 / 10) * 10;
-if (CATALOG_OK) {
+/* цена из каталога до акции — база и для акции, и для правки владельца:
+   правка не должна ещё раз получать скидку 20% */
+const BASE_PRICE = new Map(CATALOG_OK ? CATALOG.map(p => [p.id, +p.price || 0]) : []);
+/* цены, поставленные владельцем на витрине (заявка #172). Приезжают с моста
+   действием prices; перекрывают каталожную цену целиком — без акции и без
+   зачёркнутой старой, потому что это ручная цена, а не скидка. */
+let PRICES = {};
+/* мост подтвердил, что умеет хранить цены (действие prices) — только тогда
+   у владельца появляется карандаш у стоимости */
+let PRICES_OK = false;
+function applyPrices() {
+  if (!CATALOG_OK) return;
   for (const p of CATALOG) {
-    if (!p.price) continue;
-    p.was = p.price;
-    p.price = salePrice(p.price);
+    const base = BASE_PRICE.get(p.id) || 0;
+    const own = +PRICES[String(p.id)] || 0;
+    if (own > 0) { p.price = own; p.was = null; p.manual = true; }
+    else if (base > 0) { p.price = salePrice(base); p.was = base; p.manual = false; }
   }
 }
+applyPrices();
 const save = () => { try { localStorage.setItem('tata-shop-cart', JSON.stringify(cart)); } catch (e) {} };
 /* чистка корзины на входе: остаются только целые количества 1…∞ по живым
    товарам — строка «2», мусор или снятый с продажи товар выкидываются,
@@ -118,9 +131,10 @@ function changeQty(id, delta) {
   else cart[id] = q;
 }
 /* позиция без цены (пока только «Картошка Люкс») — заглушка вместо нуля;
-   с ценой — новая (акцией) и старая зачёркнутая рядом */
+   с ценой — новая (акцией) и старая зачёркнутая рядом. У ручной цены
+   владельца зачёркивать нечего: она показывается одна (заявка #172). */
 const priceHtml = p => p.price
-  ? `<span class="now">${fmt(p.price)}</span><span class="was">${fmt(p.was)}</span>`
+  ? `<span class="now">${fmt(p.price)}</span>${p.was ? `<span class="was">${fmt(p.was)}</span>` : ''}`
   : '<span class="fill">[уточнить цену]</span>';
 
 /* поля карточки Флаувау, тянутся с кабинета при пересборке каталога:
@@ -481,6 +495,16 @@ function pActionHtml() {
 
 function renderPAction() { $('pAction').innerHTML = pActionHtml(); }
 
+/* цена на странице товара + карандаш правки (виден только владельцу:
+   мост подтвердил, что умеет хранить цены, — иначе карандаша нет вовсе) */
+function paintPrice() {
+  const p = currentP;
+  $('pPrice').innerHTML = p.price
+    ? `<span class="now">${fmt(p.price)}</span>` + (p.was ? `<span class="was">${fmt(p.was)}</span>` : '')
+    : '<span class="fill">[уточнить цену]</span>';
+  $('pEdit').hidden = !(PRICES_OK && ownerMode());
+}
+
 function openProduct(id) {
   const p = byId(id);
   if (!p) return;
@@ -490,9 +514,7 @@ function openProduct(id) {
   $('pGallery').scrollLeft = 0;
   $('pLabel').textContent = p.lbl || '';
   $('pName').textContent = p.full;
-  $('pPrice').innerHTML = p.price
-    ? `<span class="now">${fmt(p.price)}</span><span class="was">${fmt(p.was)}</span>`
-    : '<span class="fill">[уточнить цену]</span>';
+  paintPrice();
   $('pMeta').innerHTML = metaHtml(p);
   $('pComp').innerHTML = compHtml(p);
   $('pDesc').textContent = p.desc || '';
@@ -515,6 +537,168 @@ function onPActionClick(e) {
   renderPAction();
 }
 
+/* ---------- правка цены владельцем (заявка #172) ----------
+   Карандаш справа от стоимости на странице товара. Код владельца сверяет
+   сервер (действие setprice моста) — в странице его нет: витрина публичная.
+   На своём устройстве код запоминается в localStorage, чтобы не вводить его
+   каждый раз. Чужому карандаш ничего не даёт: без кода правка отклоняется. */
+const OWNER_KEY = 'tata-shop-owner-code';
+const ownerCode = () => { try { return localStorage.getItem(OWNER_KEY) || ''; } catch (e) { return ''; } };
+const rememberOwner = code => { try { localStorage.setItem(OWNER_KEY, code); } catch (e) {} };
+const forgetOwner = () => { try { localStorage.removeItem(OWNER_KEY); } catch (e) {} };
+/* режим владельца включается один раз на устройстве: долгое нажатие на
+   название магазина или ссылка ?owner=1; покупатель карандаша не видит */
+const ownerMode = () => !!ownerCode();
+
+function ownErr(msg) {
+  const el = $('ownErr');
+  el.textContent = msg || '';
+  el.hidden = !msg;
+}
+
+function openOwnerSheet() {
+  const on = ownerMode();
+  $('ownForm').hidden = on;
+  $('ownOn').hidden = !on;
+  $('ownCode').value = '';
+  ownErr('');
+  $('ownOverlay').hidden = false;
+  $('ownSheet').classList.add('open');
+  requestAnimationFrame(() => $('ownOverlay').classList.add('show'));
+  if (!on) setTimeout(() => $('ownCode').focus({ preventScroll: true }), 260);
+}
+
+function closeOwnerSheet() {
+  $('ownSheet').classList.remove('open');
+  $('ownOverlay').classList.remove('show');
+  setTimeout(() => { $('ownOverlay').hidden = true; }, 220);
+}
+
+/* код не проверяет клиент: он запоминается и уходит на сервер при первом
+   сохранении — неверный сервер отклонит и карандаш вернёт запрос кода */
+function ownerUnlock() {
+  const c = $('ownCode').value.trim();
+  if (c.length < 4) { ownErr('Код — не короче 4 символов'); return; }
+  rememberOwner(c);
+  closeOwnerSheet();
+  if (currentP) paintPrice();
+}
+
+function ownerLock() {
+  forgetOwner();
+  closeOwnerSheet();
+  if (currentP) paintPrice();
+}
+
+function pedErr(msg) {
+  const el = $('peditErr');
+  el.textContent = msg || '';
+  el.hidden = !msg;
+}
+
+function openPriceEditor() {
+  const p = currentP;
+  if (!p) return;
+  $('peditProd').textContent = p.name;
+  $('peditInput').value = p.price ? String(p.price) : '';
+  $('peditCodeWrap').hidden = !!ownerCode();
+  $('peditCode').value = '';
+  $('peditReset').hidden = !PRICES[String(p.id)];
+  $('peditSave').disabled = false;
+  $('peditSave').textContent = 'Сохранить';
+  pedErr('');
+  $('peditOverlay').hidden = false;
+  $('peditSheet').classList.add('open');
+  requestAnimationFrame(() => $('peditOverlay').classList.add('show'));
+  setTimeout(() => $('peditInput').focus({ preventScroll: true }), 260);
+}
+
+function closePriceEditor() {
+  $('peditSheet').classList.remove('open');
+  $('peditOverlay').classList.remove('show');
+  setTimeout(() => { $('peditOverlay').hidden = true; }, 220);
+}
+
+async function savePrice(reset) {
+  const p = currentP;
+  if (!p) return;
+  const btn = $('peditSave');
+  const code = ownerCode() || $('peditCode').value.trim();
+  if (!code) { $('peditCodeWrap').hidden = false; pedErr('Введите код владельца'); return; }
+
+  let price = null;
+  if (!reset) {
+    const digits = $('peditInput').value.replace(/\D/g, '');
+    const n = +digits;
+    if (!digits || !(n > 0)) { pedErr('Цена — число, например 1 760'); return; }
+    if (n > 1000000) { pedErr('Слишком большая цена'); return; }
+    price = n;
+  }
+
+  pedErr('');
+  btn.disabled = true;
+  btn.textContent = 'Сохраняем…';
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 30000);
+  try {
+    const res = await fetch(BRIDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'setprice', code: code, id: p.id, price: price }),
+      signal: ac.signal
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    if (!d.ok) {
+      if (/Неверный код/.test(d.error || '')) {
+        forgetOwner();
+        $('peditCodeWrap').hidden = false;
+        $('peditCode').value = '';
+      }
+      throw new Error(d.error || 'Мост отказал');
+    }
+    rememberOwner(code);
+    PRICES = d.prices || PRICES;
+    if (price) PRICES[String(p.id)] = price;
+    else delete PRICES[String(p.id)];
+    applyPrices();
+    renderGrid();
+    updateBars();
+    paintPrice();
+    renderPAction();
+    btn.disabled = false;
+    btn.textContent = 'Сохранить';
+    closePriceEditor();
+  } catch (err) {
+    pedErr(/abort/i.test(err.name || '') ? 'Связь пропала — попробуйте ещё раз' : (err.message || 'Не получилось сохранить'));
+    btn.disabled = false;
+    btn.textContent = 'Сохранить';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* цены с моста: если он ещё не знает действия prices (старая версия скрипта),
+   карандаша нет вовсе — сломанного контрола покупатель не увидит */
+async function loadPrices() {
+  try {
+    const res = await fetch(BRIDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'prices' })
+    });
+    if (!res.ok) return;
+    const d = await res.json();
+    if (!d || !d.ok || !d.prices) return;
+    PRICES = d.prices;
+    PRICES_OK = true;
+    applyPrices();
+    renderGrid();
+    updateBars();
+    if (currentP) { paintPrice(); renderPAction(); }
+  } catch (e) { /* нет связи — остаются цены каталога */ }
+}
+
 /* ---------- запуск ---------- */
 
 $('grid').addEventListener('click', onGridClick);
@@ -523,7 +707,13 @@ $('cartBtn').addEventListener('click', openSheet);
 $('cartBar').addEventListener('click', openSheet);
 $('sheetClose').addEventListener('click', closeSheet);
 $('overlay').addEventListener('click', closeSheet);
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  /* верхнее окно закрывается первым — товар под ним остаётся открытым */
+  if ($('ownSheet').classList.contains('open')) closeOwnerSheet();
+  else if ($('peditSheet').classList.contains('open')) closePriceEditor();
+  else closeSheet();
+});
 
 /* лента чипов: на десктопе колесо мыши крутит её горизонтально */
 $('chips').addEventListener('wheel', e => {
@@ -535,6 +725,39 @@ $('chips').addEventListener('wheel', e => {
 /* товарная страница */
 $('pAction').addEventListener('click', onPActionClick);
 $('pClose').addEventListener('click', closeSheet);
+$('pEdit').addEventListener('click', openPriceEditor);
+$('peditClose').addEventListener('click', closePriceEditor);
+$('peditOverlay').addEventListener('click', closePriceEditor);
+$('peditSave').addEventListener('click', () => savePrice(false));
+$('peditReset').addEventListener('click', () => savePrice(true));
+$('peditInput').addEventListener('keydown', e => { if (e.key === 'Enter') savePrice(false); });
+$('peditCode').addEventListener('keydown', e => { if (e.key === 'Enter') savePrice(false); });
+$('ownClose').addEventListener('click', closeOwnerSheet);
+$('ownOverlay').addEventListener('click', closeOwnerSheet);
+$('ownOk').addEventListener('click', ownerUnlock);
+$('ownOff').addEventListener('click', ownerLock);
+$('ownCode').addEventListener('keydown', e => { if (e.key === 'Enter') ownerUnlock(); });
+loadPrices();
+
+/* режим владельца: долгое нажатие на название магазина в шапке.
+   Движение пальца/мыши или короткий тап отменяют — обычный тап по шапке
+   ничего не открывает. */
+(function () {
+  const brand = document.querySelector('.brand');
+  if (!brand) return;
+  let timer = 0, x0 = 0, y0 = 0;
+  const stop = () => { clearTimeout(timer); timer = 0; };
+  brand.addEventListener('pointerdown', e => {
+    x0 = e.clientX; y0 = e.clientY;
+    clearTimeout(timer);
+    timer = setTimeout(openOwnerSheet, 650);
+  });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) brand.addEventListener(ev, stop);
+  brand.addEventListener('pointermove', e => {
+    if (Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0) > 12) stop();
+  });
+})();
+if (new URLSearchParams(location.search).get('owner') === '1') openOwnerSheet();
 $('pComp').addEventListener('click', e => {
   if (e.target.closest('#pCompHead')) toggleComp();
 });
