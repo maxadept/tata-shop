@@ -139,6 +139,30 @@ const metaHtml = p => {
   return bits.length ? `<div class="pmeta">${bits.join(' · ')}</div>` : '';
 };
 
+/* Состав — ингредиенты из карточки Флаувау (properties.composition).
+   Раскрывающийся элемент: свёрнут по умолчанию, по клику открывается список.
+   Вторичный контрол: не действие (тёмная заливка) и не фильтр (оранжевая
+   заливка) — просто раскрытие. */
+const compList = p => (p.comp || '').split(',').map(s => s.trim()).filter(Boolean);
+const compHtml = p => {
+  const list = compList(p);
+  if (!list.length) return '';
+  return `<button class="pcomp-head" id="pCompHead" type="button" aria-expanded="false" aria-controls="pCompList">
+            <span>Состав</span>
+            <svg class="pcomp-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <ul class="pcomp-list" id="pCompList" hidden>${list.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
+};
+
+function toggleComp() {
+  const head = $('pCompHead'), list = $('pCompList');
+  if (!head || !list) return;
+  const open = list.hidden;
+  list.hidden = !open;
+  head.classList.toggle('open', open);
+  head.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
 /* ---------- каталог ---------- */
 
 function renderChips() {
@@ -470,6 +494,7 @@ function openProduct(id) {
     ? `<span class="now">${fmt(p.price)}</span><span class="was">${fmt(p.was)}</span>`
     : '<span class="fill">[уточнить цену]</span>';
   $('pMeta').innerHTML = metaHtml(p);
+  $('pComp').innerHTML = compHtml(p);
   $('pDesc').textContent = p.desc || '';
   renderPAction();
   $('overlay').hidden = false;
@@ -510,6 +535,9 @@ $('chips').addEventListener('wheel', e => {
 /* товарная страница */
 $('pAction').addEventListener('click', onPActionClick);
 $('pClose').addEventListener('click', closeSheet);
+$('pComp').addEventListener('click', e => {
+  if (e.target.closest('#pCompHead')) toggleComp();
+});
 $('tgLink').addEventListener('click', e => {
   if (tg && tg.openTelegramLink) { e.preventDefault(); tg.openTelegramLink('https://t.me/taira_lis'); }
 });

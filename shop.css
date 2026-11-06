@@ -459,6 +459,30 @@ a.submit-btn { display: block; text-align: center; text-decoration: none; }
   font-size: 14.5px; line-height: 1.55; color: var(--text);
   white-space: pre-line;
 }
+/* Состав: раскрывающийся список ингредиентов. Вторичный контрол —
+   не действие и не фильтр, поэтому без тёмной и без оранжевой заливки */
+.pcomp { margin-top: 14px; }
+.pcomp-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; padding: 11px 0;
+  border-top: 1px solid var(--line);
+  font-size: 15px; font-weight: 650; color: var(--text);
+  text-align: left;
+}
+.pcomp-head .pcomp-chev { flex: none; color: var(--muted); transition: transform .2s ease; }
+.pcomp-head.open .pcomp-chev { transform: rotate(180deg); }
+.pcomp-list {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  list-style: none;
+  padding: 2px 0 2px;
+}
+.pcomp-list[hidden] { display: none; }
+.pcomp-list li {
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 5px 10px;
+  font-size: 13.5px; line-height: 1.35; color: var(--text);
+}
 .paction {
   padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
   background: var(--bg);
