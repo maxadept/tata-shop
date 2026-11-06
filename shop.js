@@ -516,7 +516,7 @@ function paintPrice() {
   $('pPrice').innerHTML = p.price
     ? `<span class="now">${fmt(p.price)}</span>` + (p.was ? `<span class="was">${fmt(p.was)}</span>` : '')
     : '<span class="fill">[уточнить цену]</span>';
-  $('pEdit').hidden = !(PRICES_OK && ownerMode());
+  $('pEdit').hidden = !(PRICES_OK && OWNER_READY && ownerMode());
 }
 
 function openProduct(id) {
@@ -693,7 +693,8 @@ async function savePrice(reset) {
 }
 
 /* цены с моста: если он ещё не знает действия prices (старая версия скрипта),
-   карандаша нет вовсе — сломанного контрола покупатель не увидит */
+   карандаша нет вовсе — сломанного контроля покупатель не увидит */
+let OWNER_READY = true;         /* мост сказал, что код владельца задан */
 async function loadPrices() {
   try {
     const res = await fetch(BRIDGE_URL, {
@@ -706,6 +707,9 @@ async function loadPrices() {
     if (!d || !d.ok || !d.prices) return;
     PRICES = d.prices;
     PRICES_OK = true;
+    /* код владельца ещё не задан — карандаша не показываем: кнопка, которая
+       не сохраняет, хуже, чем её отсутствие (старый мост поля не знает) */
+    if (d.ownerReady === false) OWNER_READY = false;
     applyPrices();
     renderGrid();
     updateBars();
