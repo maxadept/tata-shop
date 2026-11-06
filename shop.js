@@ -157,7 +157,21 @@ const metaHtml = p => {
    Раскрывающийся элемент: свёрнут по умолчанию, по клику открывается список.
    Вторичный контрол: не действие (тёмная заливка) и не фильтр (оранжевая
    заливка) — просто раскрытие. */
-const compList = p => (p.comp || '').split(',').map(s => s.trim()).filter(Boolean);
+const compList = p => {
+  const out = [];
+  String(p.comp || '').split(',').forEach(part => {
+    const t = part.trim();
+    if (!t) return;
+    /* «молоко 2,5%»: запятая внутри числа — не разрыв списка, а десятичная
+       запятая; без этого в составе отдельной строкой висел «5%» */
+    if (out.length && /(\d+(?:[.,]\d+)?)$/.test(out[out.length - 1]) && /^\d+(?:[.,]\d+)?%$/.test(t)) {
+      out[out.length - 1] += ',' + t;
+      return;
+    }
+    out.push(t);
+  });
+  return out;
+};
 const compHtml = p => {
   const list = compList(p);
   if (!list.length) return '';
